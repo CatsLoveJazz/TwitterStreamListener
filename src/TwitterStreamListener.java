@@ -3,9 +3,10 @@
  *
  * Graeme Lyon
  * March 2014
-********************************************************************/
+ ********************************************************************/
 
 import java.io.*;
+import java.util.ArrayList;
 
 import twitter4j.FilterQuery;
 import twitter4j.StallWarning;
@@ -24,6 +25,9 @@ import java.util.Date;
 public class TwitterStreamListener {
 
 	public static void main(String[] args) throws TwitterException {
+
+		// Create data store
+		final TweetContainer g = new TweetContainer();
 
 		// Configure OAuth
 		ConfigurationBuilder cb = new ConfigurationBuilder();
@@ -45,26 +49,34 @@ public class TwitterStreamListener {
 				if (status.getGeoLocation() != null) {
 					geo = status.getGeoLocation().toString();
 				}
-
-				 // Print to console
-//				 System.out.println("@" + status.getUser().getScreenName()
-//				 + " : " + status.getCreatedAt() + " - "
-//				 + status.getText() + ". place: " + status.getPlace()
-//				 + ". geo: " + geo);
+				String place = "N/A";
+				if (status.getPlace() != null) {
+					place = status.getPlace().toString();
+				}
+				
 
 				// File write
 				String curtime = getDateTime();
-				String fn = "log/log_" + curtime + ".txt";
-				try {
-					writeStringToFile(
-							fn,
-							"|START|" + "@" + status.getUser().getScreenName()
-									+ "|" + status.getCreatedAt() + "|"
-									+ status.getText() + "|"
-									+ status.getPlace() + "|" + geo + "|END|");
-				} catch (IOException e) {
-					System.err.println("IOException: " + e.getMessage());
-					e.printStackTrace();
+				String fn = "log/Tweet_Log_" + curtime + ".txt";
+				String tweet = "|START|" + "@"
+						+ status.getUser().getScreenName() + "|"
+						+ status.getCreatedAt() + "|" + status.getText() + "|"
+						+ place + "|" + geo + "|END|";
+
+				g.TweetList.add(tweet); // add to list
+				System.out.println(status.getCreatedAt() + "\t@" + status.getUser().getScreenName() + "\n" +  status.getText() + "\n");
+
+				if (g.TweetList.size() == 500) {
+					try {
+						for (String t : g.TweetList) {
+							writeStringToFile(fn, t);
+						}
+						g.TweetList.clear();
+
+					} catch (IOException e) {
+						System.err.println("IOException: " + e.getMessage());
+						e.printStackTrace();
+					}
 				}
 
 			}
@@ -125,8 +137,16 @@ public class TwitterStreamListener {
 
 	public static String getDateTime() {
 		Date date = new Date();
-		DateFormat dateFormat = new SimpleDateFormat("HH_MM__dd_MM_yyyy");
+		DateFormat dateFormat = new SimpleDateFormat("dd_MM_yyyy");
 		return dateFormat.format(date);
+	}
+
+	static class TweetContainer {
+		public ArrayList<String> TweetList;
+
+		public TweetContainer() {
+			TweetList = new ArrayList<String>();
+		}
 	}
 
 };
